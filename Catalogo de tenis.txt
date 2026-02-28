@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sneakers Shop</title>
+
+<style>
+:root{
+  --bg:#f5f5f5;
+  --card:#ffffff;
+  --text:#111;
+  --accent:#111;
+  --soft:#eaeaea;
+}
+
+body.dark{
+  --bg:#0f0f0f;
+  --card:#1c1c1c;
+  --text:#f5f5f5;
+  --accent:#ffffff;
+  --soft:#2a2a2a;
+}
+
+body{
+  margin:0;
+  font-family:'Segoe UI',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  transition:.3s;
+}
+
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:20px 40px;
+  background:var(--accent);
+  color:white;
+  position:sticky;
+  top:0;
+  z-index:1000;
+}
+
+.logo{
+  font-weight:bold;
+  font-size:22px;
+  letter-spacing:2px;
+}
+
+nav button{
+  margin-left:10px;
+  padding:8px 14px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.controls{
+  display:flex;
+  justify-content:center;
+  gap:15px;
+  padding:20px;
+  flex-wrap:wrap;
+}
+
+input, select{
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  min-width:200px;
+}
+
+.catalogo{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:25px;
+  padding:30px;
+}
+
+.producto{
+  background:var(--card);
+  border-radius:18px;
+  overflow:hidden;
+  box-shadow:0 8px 20px rgba(0,0,0,.15);
+  transition:.4s;
+  display:flex;
+  flex-direction:column;
+}
+
+.producto:hover{
+  transform:translateY(-8px);
+}
+
+.producto img{
+  width:100%;
+  height:220px;
+  object-fit:cover;
+}
+
+.info{
+  padding:18px;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+
+.precio{
+  font-weight:bold;
+  font-size:18px;
+  color:#27ae60;
+}
+
+.btn{
+  margin-top:10px;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  background:var(--accent);
+  color:white;
+  cursor:pointer;
+  transition:.3s;
+}
+
+.btn:hover{
+  opacity:.8;
+}
+
+/* CARRITO LATERAL */
+.carrito{
+  position:fixed;
+  right:-400px;
+  top:0;
+  width:350px;
+  height:100%;
+  background:var(--card);
+  box-shadow:-5px 0 20px rgba(0,0,0,.2);
+  padding:20px;
+  transition:.4s;
+  display:flex;
+  flex-direction:column;
+  z-index:2000;
+}
+
+.carrito.activo{
+  right:0;
+}
+
+.carrito h3{
+  margin-top:0;
+}
+
+.lista{
+  flex:1;
+  overflow-y:auto;
+  margin-bottom:15px;
+}
+
+.item{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:8px;
+  font-size:14px;
+}
+
+.total{
+  font-weight:bold;
+  font-size:18px;
+  margin-bottom:10px;
+}
+
+.badge{
+  background:red;
+  color:white;
+  border-radius:50%;
+  padding:4px 8px;
+  font-size:12px;
+  margin-left:5px;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">TJ SNEAKERS SHOP</div>
+  <nav>
+    <button onclick="toggleModo()">Modo</button>
+    <button onclick="toggleCarrito()">Carrito <span id="contador" class="badge">0</span></button>
+  </nav>
+</header>
+
+<div class="controls">
+  <input type="text" id="buscador" placeholder="Buscar modelo..." onkeyup="filtrar()">
+  <select id="filtroPrecio" onchange="filtrar()">
+    <option value="todos">Todos los precios</option>
+    <option value="2000">Hasta $2000</option>
+    <option value="3500">Hasta $3500</option>
+    <option value="5000">Hasta $5000</option>
+  </select>
+</div>
+
+<section class="catalogo" id="catalogo"></section>
+
+<!-- CARRITO -->
+<div class="carrito" id="carrito">
+  <h3>Tu Carrito 🛒</h3>
+  <div class="lista" id="lista"></div>
+  <div class="total" id="total">Total: $0</div>
+  <button class="btn" onclick="vaciar()">Vaciar</button>
+</div>
+
+<script>
+const productos = [
+ {nombre:"Louis Vuitton  Trainer",precio:1500,img:"https://uk.louisvuitton.com/images/is/image/lv/1/PP_VP_L/louis-vuitton-lv-trainers-shoes--BO9U5PMI02_PM2_Front%20view.png?wid=1440&hei=1440"},
+ {nombre:"Nike Air Max 270",precio:1300,img:"https://i8.amplience.net/i/jpl/jd_009289_a?qlt=92&w=950&h=673&v=1&fmt=auto"},
+ {nombre:"Dolce & Gabbana Sneaker",precio:1500,img:"https://cdn-images.farfetch-contents.com/27/64/36/92/27643692_57424513_1000.jpg"},
+ {nombre:"Alexander McQueen Oversized",precio:1500,img:"https://tecalzoshoes.com/wp-content/uploads/2020/04/Alexander-McQueen-Oversized-Black-Product.webp"},
+ {nombre:"Nike",precio:380,img:""},
+ {nombre:"",precio:1500,img:""}
+];
+
+let carrito=[];
+let total=0;
+
+function render(){
+  const catalogo=document.getElementById("catalogo");
+  catalogo.innerHTML="";
+  productos.forEach(p=>{
+    catalogo.innerHTML+=`
+      <div class="producto" data-nombre="${p.nombre}" data-precio="${p.precio}">
+        <img src="${p.img}">
+        <div class="info">
+          <div>
+            <h3>${p.nombre}</h3>
+            <p class="precio">$${p.precio}</p>
+          </div>
+          <button class="btn" onclick="agregar('${p.nombre}',${p.precio})">Agregar</button>
+        </div>
+      </div>
+    `;
+  });
+}
+
+function agregar(nombre,precio){
+  carrito.push({nombre,precio});
+  total+=precio;
+  actualizarCarrito();
+}
+
+function actualizarCarrito(){
+  const lista=document.getElementById("lista");
+  lista.innerHTML="";
+  carrito.forEach((item,i)=>{
+    lista.innerHTML+=`
+      <div class="item">
+        ${item.nombre} - $${item.precio}
+        <button onclick="eliminar(${i})">❌</button>
+      </div>
+    `;
+  });
+  document.getElementById("total").innerText="Total: $"+total;
+  document.getElementById("contador").innerText=carrito.length;
+}
+
+function eliminar(i){
+  total-=carrito[i].precio;
+  carrito.splice(i,1);
+  actualizarCarrito();
+}
+
+function vaciar(){
+  carrito=[];
+  total=0;
+  actualizarCarrito();
+}
+
+function toggleCarrito(){
+  document.getElementById("carrito").classList.toggle("activo");
+}
+
+function toggleModo(){
+  document.body.classList.toggle("dark");
+  localStorage.setItem("modo",document.body.classList.contains("dark"));
+}
+
+if(localStorage.getItem("modo")==="true"){
+  document.body.classList.add("dark");
+}
+
+function filtrar(){
+  let texto=document.getElementById("buscador").value.toLowerCase();
+  let precioFiltro=document.getElementById("filtroPrecio").value;
+  document.querySelectorAll(".producto").forEach(p=>{
+    let nombre=p.dataset.nombre.toLowerCase();
+    let precio=parseInt(p.dataset.precio);
+    let visible=nombre.includes(texto) &&
+      (precioFiltro==="todos" || precio<=precioFiltro);
+    p.style.display=visible?"block":"none";
+  });
+}
+
+render();
+</script>
+
+</body>
+</html>
